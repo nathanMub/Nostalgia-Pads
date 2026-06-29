@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+/* Base */
+body {
+  font-family: 'DM Sans', sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+}
+
+.App {
+  min-height: 100vh;
+}
+
+/* ------------------------------
+   CLEAN TRANSITIONS (IMPORTANT FIX)
+   ------------------------------ */
+
+/*
+❌ OLD ISSUE: transition on * caused lag everywhere
+✔ FIX: only animate safe properties on interactive elements
+*/
+
+button,
+a,
+input {
+  transition: background-color 250ms ease,
+              border-color 250ms ease,
+              color 250ms ease,
+              box-shadow 250ms ease,
+              transform 200ms ease;
+}
+
+/* Avoid animating layout-heavy properties globally */
+img {
+  transition: opacity 300ms ease;
+}
+
+/* ------------------------------
+   FLOAT ANIMATION (GPU OPTIMIZED)
+   ------------------------------ */
+
+@keyframes float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -16px, 0);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ------------------------------
+   SCROLLBAR (CLEAN + LIGHTWEIGHT)
+   ------------------------------ */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #a855f7, #ec4899);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #9333ea, #db2777);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c084fc, #f472b6);
+}
+
+/* ------------------------------
+   IMAGE ZOOM FIX (IMPORTANT)
+   ------------------------------ */
+
+.dark [data-rmiz-modal-overlay] {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Prevent zoom flicker */
+[data-rmiz-content] img {
+  will-change: transform;
+}

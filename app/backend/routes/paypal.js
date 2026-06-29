@@ -1,27 +1,22 @@
-app.post('/api/paypal/create-order', async (req, res) => {
+app.post('/api/paypal/capture-order', async (req, res) => {
   try {
-    const { order_id } = req.body;
+    const { paypal_order_id, order_id } = req.body;
 
-    const order = await db.orders.findById(order_id);
-    const items = await db.cart.getItems(order.cart_id);
+    const capture = await paypalClient.capture(paypal_order_id);
 
-    if (!items || items.length === 0) {
-      return res.status(400).json({ error: 'Cart is empty' });
-    }
-
-    // 🔒 SERVER CALCULATED TOTAL (NO FRONTEND TRUST)
-    const total = items.reduce((sum, item) => {
-      return sum + (item.price * item.quantity);
-    }, 0);
-
-    const paypalOrder = await paypalClient.createOrder({
-      amount: total
+    await db.orders.update(order_id, {
+      status: 'paid',
+      payment_data: capture
     });
 
-    res.json({ id: paypalOrder.id });
+    // 🧹 CLEAR CART AFTER SUCCESSFUL PAYMENT
+    const order = await db.orders.findById(order_id);
+    await db.cart.clear(order.cart_id);
+
+    res.json({ success: true });
 
   } catch (err) {
-    console.error('PayPal create error:', err);
-    res.status(500).json({ error: 'PayPal order failed' });
+    console.error('Capture error:', err);
+    res.status(500).json({ error: 'Payment capture failed' });
   }
 });

@@ -19,55 +19,45 @@ export const ProductPage = () => {
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!slug) return;
-
-    setLoading(true);
-    setError(null);
-    setProduct(null);
-    setRelatedProducts([]);
-    setSelectedImage(0);
-    setSelectedSize('');
-
-    fetchProductData();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (slug) fetchProductData();
   }, [slug]);
 
   const fetchProductData = async () => {
+    setLoading(true);
+
     try {
-      const productRes = await axios.get(`${API}/products/${slug}`);
-      const data = productRes.data;
+      const res = await axios.get(`${API}/products/${slug}`);
+      const data = res.data;
 
       setProduct(data);
 
-      const sizes = data.size_options || [];
-      if (sizes.length > 0) setSelectedSize(sizes[0]);
+      // SAFE size options
+      const sizes = Array.isArray(data?.size_options) ? data.size_options : [];
+      setSelectedSize(sizes[0] || '');
 
-      // fetch related safely
+      // Fetch related safely
       const relatedRes = await axios.get(
         `${API}/products?collection_id=${data.collection_id}`
       );
 
-      const filtered = (relatedRes.data || [])
-        .filter(p => p.id !== data.id)
-        .slice(0, 3);
+      const filtered = Array.isArray(relatedRes.data)
+        ? relatedRes.data.filter(p => p.id !== data.id).slice(0, 3)
+        : [];
 
       setRelatedProducts(filtered);
+
     } catch (err) {
-      console.error(err);
-      setError('Failed to load product');
+      console.error('Product load error:', err);
       toast.error('Failed to load product');
+      setProduct(null);
     } finally {
       setLoading(false);
     }
   };
 
   const handleAddToCart = async () => {
-    if (!product) return;
-
     if (!selectedSize) {
       toast.error('Please select a size');
       return;
@@ -84,51 +74,54 @@ export const ProductPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p>Loading product...</p>
-        </div>
+        <div className="animate-spin h-12 w-12 border-b-2 border-purple-500 rounded-full"></div>
       </div>
     );
   }
 
-  if (error || !product) {
+  if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center text-center">
         <div>
           <h2 className="text-2xl font-bold mb-4">Product not found</h2>
-          <Link to="/" className="text-purple-500">Go back home</Link>
+          <Link to="/" className="text-purple-500">
+            Go back home
+          </Link>
         </div>
       </div>
     );
   }
 
   const productImages =
-    product.images?.length > 0
+    Array.isArray(product?.images) && product.images.length > 0
       ? product.images
-      : product.image_url
+      : product?.image_url
       ? [product.image_url]
       : [];
+
+  const sizes = Array.isArray(product?.size_options)
+    ? product.size_options
+    : [];
 
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-6 py-12">
 
-        <Link to="/" className="inline-flex items-center gap-2 mb-8">
+        <Link to="/" className="flex items-center gap-2 mb-8 text-slate-500">
           <ArrowLeft className="w-5 h-5" />
           Back
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid lg:grid-cols-2 gap-12">
 
-          {/* Images */}
-          <div className="space-y-4">
+          {/* IMAGES */}
+          <div>
             <Zoom>
-              <div className="aspect-[16/10] rounded-2xl overflow-hidden bg-slate-100">
-                {productImages[selectedImage] && (
+              <div className="aspect-[16/10] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900">
+                {productImages.length > 0 && (
                   <img
                     src={productImages[selectedImage]}
-                    alt={product.name}
+                    alt={product?.name || 'Product'}
                     className="w-full h-full object-cover"
                   />
                 )}
@@ -136,53 +129,59 @@ export const ProductPage = () => {
             </Zoom>
 
             {productImages.length > 1 && (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-3 mt-4">
                 {productImages.map((img, i) => (
                   <button
                     key={i}
                     onClick={() => setSelectedImage(i)}
-                    className={`aspect-square rounded-lg overflow-hidden border ${
+                    className={`aspect-square rounded-lg overflow-hidden border-2 ${
                       selectedImage === i
                         ? 'border-purple-500'
                         : 'border-transparent'
                     }`}
                   >
-                    <img src={img} className="w-full h-full object-cover" />
+                    <img
+                      src={img}
+                      alt={`view-${i}`}
+                      className="w-full h-full object-cover"
+                    />
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Info */}
+          {/* INFO */}
           <div className="space-y-6">
 
-            <h1 className="text-3xl font-bold">{product.name}</h1>
+            <h1 className="text-4xl font-black">
+              {product?.name || 'Unnamed Product'}
+            </h1>
 
-            <div className="flex items-center gap-2">
-              <Star className="text-yellow-500 w-5 h-5" />
-              <span>{product.rating || 0}</span>
-              <span className="text-slate-500">
-                ({product.reviews_count || 0})
+            <div className="flex items-center gap-2 text-yellow-500">
+              <Star className="w-5 h-5 fill-current" />
+              <span>{product?.rating || 0}</span>
+              <span className="text-slate-400">
+                ({product?.reviews_count || 0})
               </span>
             </div>
 
-            <div className="text-3xl font-bold">
-              ${product.price}
+            <div className="text-4xl font-black">
+              ${product?.price || 0}
             </div>
 
-            {/* Sizes */}
+            {/* SIZES */}
             <div>
-              <h3 className="font-semibold mb-2">Size</h3>
+              <h3 className="font-bold mb-2">Size</h3>
               <div className="flex gap-2 flex-wrap">
-                {(product.size_options || []).map(size => (
+                {sizes.map(size => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`px-4 py-2 rounded-full border ${
+                    className={`px-5 py-2 rounded-full ${
                       selectedSize === size
                         ? 'bg-purple-500 text-white'
-                        : ''
+                        : 'bg-slate-200 dark:bg-slate-800'
                     }`}
                   >
                     {size}
@@ -194,32 +193,34 @@ export const ProductPage = () => {
             <button
               onClick={handleAddToCart}
               disabled={cartLoading}
-              className="w-full py-3 bg-purple-500 text-white rounded-full"
+              className="w-full py-4 bg-purple-500 text-white font-bold rounded-full"
             >
               {cartLoading ? 'Adding...' : 'Add to Cart'}
             </button>
 
-            <p className="text-slate-600">{product.description}</p>
+            {/* DESCRIPTION */}
+            <p className="text-slate-500">
+              {product?.description || 'No description available.'}
+            </p>
 
-            <ul className="space-y-2">
+            {/* FEATURES */}
+            <ul className="space-y-2 text-slate-500">
               {[
-                'Premium surface',
-                'Non-slip base',
-                'Durable stitching',
-                'Easy cleaning',
-                'High-quality print'
+                'Smooth surface for precision',
+                'Anti-slip rubber base',
+                'Durable stitched edges',
+                'Fade-resistant print'
               ].map((f, i) => (
                 <li key={i} className="flex gap-2">
-                  <Check className="text-green-500 w-4 h-4" />
+                  <Check className="w-5 h-5 text-green-500" />
                   {f}
                 </li>
               ))}
             </ul>
-
           </div>
         </div>
 
-        {/* Related */}
+        {/* RELATED */}
         {relatedProducts.length > 0 && (
           <div className="mt-20">
             <h2 className="text-2xl font-bold mb-6">You may also like</h2>
